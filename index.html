@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1+1=11</title>
+<link rel="icon" href="calc.png" type="image/png">
+<style>
+    body {
+        margin: 0; padding: 0; height: 100vh; overflow: hidden;
+        background-color: #1f366e;
+        background-image: 
+            radial-gradient(circle at 100% 150%, #1f366e 24%, #2b4991 25%, #2b4991 28%, #1f366e 29%, #1f366e 36%, #2b4991 36%, #2b4991 40%, transparent 40%, transparent),
+            radial-gradient(circle at 0    150%, #1f366e 24%, #2b4991 25%, #2b4991 28%, #1f366e 29%, #1f366e 36%, #2b4991 36%, #2b4991 40%, transparent 40%, transparent),
+            radial-gradient(circle at 50%  100%, #2b4991 10%, #1f366e 11%, #1f366e 23%, #2b4991 24%, #2b4991 30%, #1f366e 31%, #1f366e 43%, #2b4991 44%, #2b4991 50%, #1f366e 51%, #1f366e 100%);
+        background-size: 60px 30px;
+        font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none;
+    }
+
+    /* AERO ОКНА */
+    .win7-window {
+        position: absolute; display: flex; flex-direction: column;
+        background: rgba(185, 209, 234, 0.4); 
+        border: 1px solid rgba(0, 0, 0, 0.4); border-radius: 8px; padding: 5px; padding-top: 0; 
+        box-shadow: inset 0 0 1px #fff, inset 0 1px 0 rgba(255,255,255,0.7), 0 15px 35px rgba(0,0,0,0.5);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        transition: transform 0.2s, opacity 0.2s; 
+    }
+
+    .title-bar {
+        height: 30px; display: flex; align-items: center; justify-content: space-between;
+        padding-left: 5px; cursor: grab; text-shadow: 0 0 5px rgba(255,255,255,0.8); font-size: 12px; color: #000;
+    }
+    .title-bar:active { cursor: grabbing; }
+    .title-left { display: flex; align-items: center; gap: 5px; }
+    .title-left img { width: 16px; height: 16px; }
+    
+    .window-controls { display: flex; gap: 1px; align-self: flex-start; margin-right: 3px; }
+    .win-btn {
+        width: 27px; height: 18px;
+        background: linear-gradient(to bottom, rgba(242,246,250,0.8), rgba(205,215,226,0.8));
+        border: 1px solid rgba(148,163,181,0.8); border-top: none;
+        border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;
+        display: flex; justify-content: center; align-items: center;
+        color: #333; cursor: pointer; box-shadow: inset 0 1px 1px rgba(255,255,255,0.8);
+    }
+    .win-btn:hover { background: rgba(255,255,255,0.9); }
+    .win-btn.disabled { color: #999; cursor: default; pointer-events: none; }
+    .win-btn.close { width: 44px; border-bottom-right-radius: 0; }
+    .win-btn.close:hover { background: linear-gradient(to bottom, #e36a6a, #c02020); border-color: #7b1d1d; color: white; }
+    .win-btn.close:active { background: #901010; }
+
+    .content-area {
+        background: linear-gradient(to bottom, #f0f4f9, #dce5ef); border: 1px solid #8e9db0; border-radius: 3px;
+        padding: 11px; position: relative; display: flex; flex-direction: column; flex-grow: 1; box-shadow: 0 0 2px rgba(0,0,0,0.2);
+    }
+
+    /* МЕНЮ */
+    #menu-window { top: 30px; left: 30px; width: 600px; height: 650px; z-index: 10; resize: both; overflow: auto; min-width: 500px; min-height: 500px; }
+    .menu-tabs { display: flex; gap: 5px; margin-bottom: 10px; border-bottom: 1px solid #a0a0a0; padding-bottom: 5px; flex-shrink: 0;}
+    .tab-btn { background: transparent; border: none; font-family: 'Segoe UI'; font-size: 13px; cursor: pointer; padding: 5px 10px; color: #333; transition: 0.1s;}
+    .tab-btn:hover { color: #003399; }
+    .tab-btn.active { font-weight: bold; color: #003399; background: #fff; border: 1px solid #a0a0a0; border-bottom: none; border-radius: 3px 3px 0 0; margin-bottom: -6px;}
+    .tab-content { display: none; background: #fff; border: 1px solid #a0a0a0; padding: 15px; flex-grow: 1; overflow-y: auto;}
+    .tab-content.active { display: block; }
+    .btn-action { display: block; width: 100%; padding: 8px; margin: 5px 0; background: linear-gradient(to bottom, #f4f6f8, #e0e4e9); border: 1px solid #8f9ca8; border-radius: 3px; cursor: pointer; }
+    .btn-action:hover { box-shadow: inset 0 0 5px rgba(255, 200, 0, 0.7); border-color: #3c7fb1; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 5px; margin-bottom: 15px;} th, td { border: 1px solid #ccc; padding: 6px; text-align: center;} th { background: #e0e4e9; position: sticky; top: 0;}
+
+    .rules-list { font-size: 13px; color: #333; padding-left: 20px; margin-top: 5px; line-height: 1.5; }
+    .rules-list li { margin-bottom: 8px; }
+
+    /* КАЛЬКУЛЯТОР */
+    #calc-window { top: 100px; left: 660px; width: 440px; z-index: 5; }
+    #calc-display {
+        border: 1px solid #8e9db0; border-radius: 3px; background: linear-gradient(to bottom, #e6eff7, #ffffff 15%);
+        padding: 5px 10px; text-align: right; margin-bottom: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: flex-start; height: 60px;
+    }
+    .history-wrapper { display: flex; align-items: center; justify-content: flex-end; font-size: 12px; color: #555; height: 18px; margin-bottom: 5px; position: relative; }
+    #history-text { white-space: nowrap; overflow: hidden; flex-grow: 1; text-align: right; }
+    .hist-arrow { font-size: 10px; color: #3373b8; padding: 0 2px; display: none; }
+    #main-num { font-size: 26px; color: #000; margin: 0; line-height: 1; }
+
+    .calc-master-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+    .radio-group { grid-column: span 5; border: 1px solid #94a3b5; border-radius: 3px; display: flex; justify-content: space-evenly; align-items: center; padding: 0 2px; background: rgba(255,255,255,0.3); }
+    .radio-group label { display: flex; align-items: center; font-size: 11px; color: #000; }
+    .radio-group input { margin: 0 3px 0 0; width: 12px; height: 12px; cursor: pointer;}
+    
+    .c-btn {
+        position: relative; height: 29px; border: 1px solid #8695a5; border-radius: 3px;
+        font-family: 'Segoe UI', Tahoma; font-size: 12px; cursor: pointer; display: flex; justify-content: center; align-items: center;
+        color: #000; outline: none; background: transparent; 
+        box-shadow: inset 0 1px 0px rgba(255,255,255,0.7), 0 1px 1px rgba(0,0,0,0.05); transition: border-color 0.2s ease; z-index: 1;
+    }
+    .c-btn::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, #f0f4f9, #dde5ee); z-index: -2; border-radius: 2px; }
+    .c-btn.blue-btn::before { background: linear-gradient(to bottom, #e3ecf5, #ccd8e6); }
+    .mem-btn { color: #666; }
+
+    .c-btn::after {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(to bottom, #fcf4cf 0%, #f5e197 45%, #f1d15c 50%, #f4d668 100%);
+        box-shadow: inset 0 0 12px rgba(240, 160, 0, 0.4), inset 0 1px 1px rgba(255,255,255,0.9);
+        opacity: 0; transition: opacity 0.2s ease; z-index: -1; border-radius: 2px;
+    }
+    .c-btn:hover { border-color: #d1b054; }
+    .c-btn:hover::after { opacity: 1; }
+    .c-btn:active { border-color: #8695a5; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
+    .c-btn:active::before { background: linear-gradient(to bottom, #c4cfdb, #d8e1ea); }
+    .c-btn:active::after { opacity: 0; transition: none; }
+    
+    .btn-0 { grid-column: span 2; justify-content: flex-start; padding-left: 15px;}
+    .btn-eq { grid-row: span 2; height: 62px; font-size: 16px; }
+
+    #calc-blocker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.2); z-index: 10; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(1px); border-radius: 3px; }
+    .blocker-text { background: rgba(0,0,0,0.8); color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 12px; }
+
+    /* ПАНЕЛЬ ЗАДАЧ */
+    #taskbar {
+        position: fixed; bottom: 0; left: 0; width: 100%; height: 40px;
+        background: rgba(185, 209, 234, 0.5); border-top: 1px solid rgba(255,255,255,0.4);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 -1px 10px rgba(0,0,0,0.3);
+        backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+        display: flex; align-items: center; padding: 0 10px; gap: 5px; z-index: 9999;
+    }
+    .task-item {
+        display: flex; align-items: center; gap: 8px; padding: 0 15px; height: 32px; border-radius: 3px; border: 1px solid transparent;
+        color: #000; font-size: 13px; cursor: pointer; transition: 0.2s;
+    }
+    .task-item img { width: 20px; height: 20px; }
+    .task-item:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.5); }
+    .task-item.active { background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.8); box-shadow: inset 0 0 5px rgba(255,255,255,0.5); }
+
+    /* ДИАЛОГОВЫЕ ОКНА */
+    #modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.4); z-index: 10000; display: none; justify-content: center; align-items: center;
+    }
+    .win7-dialog { width: 400px; position: relative; }
+    .win7-dialog .content-area { background: #fff; padding: 20px; }
+    .dialog-footer {
+        background: #f0f0f0; border-top: 1px solid #dfdfdf;
+        padding: 10px 20px; display: flex; justify-content: flex-end; gap: 10px;
+        border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;
+        margin: -11px; margin-top: 15px;
+    }
+    .dialog-btn {
+        padding: 5px 20px; background: linear-gradient(to bottom, #fdfdfd, #e1e1e1);
+        border: 1px solid #707070; border-radius: 3px; cursor: pointer; font-family: 'Segoe UI'; font-size: 12px;
+    }
+    .dialog-btn:hover { border-color: #3c7fb1; background: linear-gradient(to bottom, #eaf6fd, #d9f0fc); }
+    .dialog-btn:active { background: #cce8ff; }
+    .dialog-input { width: 100%; padding: 6px; border: 1px solid #7a9ea9; margin-top: 10px; font-family: 'Segoe UI'; }
+    
+    .win7-progress-container { width: 100%; height: 15px; border: 1px solid #b3b3b3; background: #e6e6e6; margin-top: 15px; border-radius: 2px; position: relative; overflow: hidden; }
+    .win7-progress-bar { width: 0%; height: 100%; background: linear-gradient(to bottom, #86f377 0%, #35d81c 40%, #15a500 50%, #20b808 100%); transition: width 0.3s; position: relative; }
+    .win7-progress-bar::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 50px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.7), transparent); animation: progress-glare 1.5s infinite linear; }
+    @keyframes progress-glare { 0% { left: -50px; } 100% { left: 100%; } }
+
+</style>
+</head>
+<body>
+
+<!-- МЕНЮ -->
+<div id="menu-window" class="win7-window">
+    <div class="title-bar" id="menu-title">
+        <div class="title-left">Главное меню</div>
+        <div class="window-controls">
+            <div class="win-btn" title="Свернуть" onclick="minimizeWindow('menu-window', 'task-menu')"><svg viewBox="0 0 10 10" width="10" height="10"><rect x="1" y="8" width="8" height="2" fill="currentColor"/></svg></div>
+            <div class="win-btn disabled"><svg viewBox="0 0 10 10" width="10" height="10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
+            <div class="win-btn disabled"><svg viewBox="0 0 10 10" width="10" height="10"><path d="M1,1 L9,9 M9,1 L1,9" stroke="currentColor" stroke-width="1.5"/></svg></div>
+        </div>
+    </div>
+    <div class="content-area">
+        <div class="menu-tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-game', this)">Игра</button>
+            <button class="tab-btn" onclick="switchTab('tab-settings', this)">Настройки</button>
+            <button class="tab-btn" onclick="switchTab('tab-records', this)">Локал. Рекорды</button>
+            <button class="tab-btn" onclick="switchTab('tab-online', this)">Онлайн Рекорды</button>
+        </div>
+        
+        <div id="tab-game" class="tab-content active">
+            <h3 style="margin-top:0; color:#003399; font-size:16px;">Правила выживания:</h3>
+            <ul class="rules-list">
+                <li>Нажимайте кнопки строго по очереди: сначала <b>1</b>, затем <b>+</b>, затем снова <b>1</b>.</li>
+                <li>Чередуйте нажатия, пока счетчик не достигнет заданной цели (например, 50).</li>
+                <li>Шаг влево, шаг вправо — расстрел. Нажали две единицы подряд или ткнули в "sin"? <b>Моментальный проигрыш</b>.</li>
+                <li><b>Безопасные кнопки (Исключения):</b> Кнопка <b>«=»</b> и пустая кнопка в левом верхнем углу не убивают вас. Они прощают клик, но не двигают прогресс.</li>
+            </ul>
+            <hr>
+            <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 5px;">
+                <p style="font-size:13px; margin:0;"><b>Статус: </b><span id="game-status">Ожидание...</span></p>
+                <p style="font-size:13px; margin:0;" id="timer-container"><b>Время: </b><span id="game-time" style="color:#900">0.0с</span></p>
+            </div>
+            <p style="font-size:13px; margin-top:0; margin-bottom:15px;"><b>Цель: </b><span id="game-target">---</span></p>
+            
+            <button class="btn-action" onclick="startGame(50)">Новичок (Цель: 50)</button>
+            <button class="btn-action" onclick="startGame(500)">Любитель (Цель: 500)</button>
+            <button class="btn-action" onclick="startGame(10000)">Профессионал (Цель: 10 000)</button>
+            <button class="btn-action" onclick="startCustom()">Своя цель...</button>
+        </div>
+        
+        <div id="tab-settings" class="tab-content">
+            <h4 style="margin-top:0;">Игровые настройки</h4>
+            <label style="font-size:13px; display:block; margin-bottom:8px;"><input type="checkbox" id="set-timer" checked onchange="saveSettings()"> Засекать время</label>
+            <label style="font-size:13px; display:block; margin-bottom:20px;"><input type="checkbox" id="set-loss" checked onchange="saveSettings()"> Записывать проигрыши локально</label>
+            <hr>
+            <h4 style="margin-top:15px;">Звук</h4>
+            <label style="font-size:13px; display:block; margin-bottom:8px;"><input type="checkbox" id="set-sound" checked onchange="saveSettings()"> Включить звук</label>
+            <select id="sound-type" style="width:100%; padding:5px; margin-bottom:15px; font-size:13px;" onchange="updateSoundUI()">
+                <option value="preset1">Звук 1 (Клик)</option>
+                <option value="preset2">Звук 2 (Писк)</option>
+                <option value="preset3">Звук 3 (Механика)</option>
+                <option value="url">По ссылке (URL)</option>
+                <option value="local">Локальный файл</option>
+            </select>
+            <div id="sound-url-box" style="display:none;"><input type="text" id="sound-url-input" placeholder="https://..." style="width:95%; padding:5px;"></div>
+            <div id="sound-file-box" style="display:none;"><input type="file" id="sound-file-input" accept="audio/*" style="font-size:12px;"></div>
+            <button class="btn-action" onclick="testSound()" style="margin-top:15px;">Тест звука</button>
+        </div>
+        
+        <div id="tab-records" class="tab-content">
+            <h4 style="margin-top:0; color:green;">Победы (Локал)</h4>
+            <table id="wins-table"><tr><th>Имя</th><th>Цель</th><th>Сек.</th></tr></table>
+            <h4 style="color:red; margin-top:20px;">Поражения (Локал)</h4>
+            <table id="loss-table"><tr><th>Имя</th><th>Очки</th><th>Цель</th></tr></table>
+            <button class="btn-action" onclick="clearRecords()" style="margin-top:15px; color:#900;">Сбросить локальные рекорды</button>
+        </div>
+
+        <div id="tab-online" class="tab-content">
+            <h4 style="margin-top:0; color:#003399;">Мировой Топ-100</h4>
+            <button class="btn-action" onclick="fetchOnlineRecords()" id="btn-refresh-online">Обновить таблицу</button>
+            <table id="online-table" style="margin-top: 15px;">
+                <tr><th>Место</th><th>Имя</th><th>Цель</th><th>Сек.</th></tr>
+            </table>
+            <p id="online-status" style="font-size: 12px; color: #666; text-align: center;">Нажмите "Обновить", чтобы загрузить данные.</p>
+        </div>
+    </div>
+</div>
+
+<!-- КАЛЬКУЛЯТОР -->
+<div id="calc-window" class="win7-window">
+    <div class="title-bar" id="calc-title">
+        <div class="title-left"><img src="calc.png" alt="icon"> Калькулятор</div>
+        <div class="window-controls">
+            <div class="win-btn" title="Свернуть" onclick="minimizeWindow('calc-window', 'task-calc')"><svg viewBox="0 0 10 10" width="10" height="10"><rect x="1" y="8" width="8" height="2" fill="currentColor"/></svg></div>
+            <div class="win-btn disabled" title="Развернуть"><svg viewBox="0 0 10 10" width="10" height="10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>
+            <div class="win-btn close" title="Сдаться!" onclick="surrender()"><svg viewBox="0 0 10 10" width="10" height="10"><path d="M1,1 L9,9 M9,1 L1,9" stroke="currentColor" stroke-width="1.5"/></svg></div>
+        </div>
+    </div>
+    
+    <div class="content-area">
+        <div id="calc-blocker"><div class="blocker-text">Выберите сложность в Меню</div></div>
+
+        <div id="calc-display">
+            <div class="history-wrapper"><span class="hist-arrow" id="hist-arrow-left">«</span><div id="history-text"></div><span class="hist-arrow" id="hist-arrow-right">»</span></div>
+            <div id="main-num">0</div>
+        </div>
+
+        <div class="calc-master-grid">
+            <div class="radio-group">
+                <label><input type="radio" name="ang" checked onchange="wrongBtn()">Градусы</label>
+                <label><input type="radio" name="ang" onchange="wrongBtn()">Радианы</label>
+                <label><input type="radio" name="ang" onchange="wrongBtn()">Грады</label>
+            </div>
+            <button class="c-btn mem-btn" onclick="wrongBtn()">MC</button>
+            <button class="c-btn mem-btn" onclick="wrongBtn()">MR</button>
+            <button class="c-btn mem-btn" onclick="wrongBtn()">MS</button>
+            <button class="c-btn mem-btn" onclick="wrongBtn()">M+</button>
+            <button class="c-btn mem-btn" onclick="wrongBtn()">M-</button>
+
+            <!-- СТРОКА 1 -->
+            <button class="c-btn blue-btn" onclick="safeBtn()"></button> 
+            <button class="c-btn blue-btn" onclick="wrongBtn()">Inv</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">ln</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">(</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">)</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">←</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">CE</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">C</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">±</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">√</button>
+            
+            <button class="c-btn blue-btn" onclick="wrongBtn()">Int</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">sinh</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">sin</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">x²</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">n!</button>
+            <button class="c-btn" onclick="wrongBtn()">7</button>
+            <button class="c-btn" onclick="wrongBtn()">8</button>
+            <button class="c-btn" onclick="wrongBtn()">9</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">/</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">%</button>
+            
+            <button class="c-btn blue-btn" onclick="wrongBtn()">dms</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">cosh</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">cos</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">x^y</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">y√x</button>
+            <button class="c-btn" onclick="wrongBtn()">4</button>
+            <button class="c-btn" onclick="wrongBtn()">5</button>
+            <button class="c-btn" onclick="wrongBtn()">6</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">*</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">1/x</button>
+            
+            <button class="c-btn blue-btn" onclick="wrongBtn()">π</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">tanh</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">tan</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">x³</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">³√x</button>
+            <button class="c-btn" onclick="playTurn('1')">1</button>
+            <button class="c-btn" onclick="wrongBtn()">2</button>
+            <button class="c-btn" onclick="wrongBtn()">3</button>
+            <button class="c-btn blue-btn" onclick="playTurn('+')">-</button> 
+            <button class="c-btn blue-btn btn-eq" onclick="safeBtn()">=</button> 
+            
+            <button class="c-btn blue-btn" onclick="wrongBtn()">F-E</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">Exp</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">Mod</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">log</button>
+            <button class="c-btn blue-btn" onclick="wrongBtn()">10^x</button>
+            <button class="c-btn btn-0" onclick="wrongBtn()">0</button> 
+            <button class="c-btn" onclick="wrongBtn()">,</button>
+            <button class="c-btn blue-btn" onclick="playTurn('+')">+</button>
+        </div>
+    </div>
+</div>
+
+<!-- ПАНЕЛЬ ЗАДАЧ (СНИЗУ) -->
+<div id="taskbar">
+    <div class="task-item active" id="task-menu" onclick="toggleTaskbarWindow('menu-window', 'task-menu')">Главное меню</div>
+    <div class="task-item active" id="task-calc" onclick="toggleTaskbarWindow('calc-window', 'task-calc')">
+        <img src="calc.png" alt="icon"> Калькулятор
+    </div>
+</div>
+
+<!-- ДИАЛОГОВЫЕ ОКНА WINDOWS 7 -->
+<div id="modal-overlay">
+    <div id="win7-dialog" class="win7-window win7-dialog">
+        <div class="title-bar">
+            <div class="title-left">Сохранение результатов</div>
+            <div class="window-controls">
+                <div class="win-btn close" onclick="closeModal()"><svg viewBox="0 0 10 10" width="10" height="10"><path d="M1,1 L9,9 M9,1 L1,9" stroke="currentColor" stroke-width="1.5"/></svg></div>
+            </div>
+        </div>
+        <div class="content-area" id="modal-content-area"></div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // ПЕРЕТАСКИВАНИЕ И ПАНЕЛЬ ЗАДАЧ
+    // ==========================================
+    function minimizeWindow(winId, taskId) {
+        const win = document.getElementById(winId);
+        win.style.opacity = '0'; win.style.transform = 'translateY(50px) scale(0.9)';
+        setTimeout(() => { win.style.display = 'none'; }, 200);
+        document.getElementById(taskId).classList.remove('active');
+    }
+    function toggleTaskbarWindow(winId, taskId) {
+        const win = document.getElementById(winId); const task = document.getElementById(taskId);
+        if (win.style.display === 'none' || win.style.opacity === '0') {
+            win.style.display = 'flex';
+            setTimeout(() => { win.style.opacity = '1'; win.style.transform = 'translateY(0) scale(1)'; }, 10);
+            task.classList.add('active'); bringToFront(winId);
+        } else {
+            if (win.style.zIndex == '10') minimizeWindow(winId, taskId); else bringToFront(winId);
+        }
+    }
+    function bringToFront(winId) {
+        document.querySelectorAll('.win7-window:not(.win7-dialog)').forEach(el => el.style.zIndex = 5);
+        document.getElementById(winId).style.zIndex = 10;
+    }
+    function makeDraggable(windowId, headerId) {
+        const elmnt = document.getElementById(windowId); const header = document.getElementById(headerId);
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        header.onmousedown = (e) => {
+            e.preventDefault(); bringToFront(windowId);
+            pos3 = e.clientX; pos4 = e.clientY;
+            document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+            document.onmousemove = (e) => {
+                e.preventDefault(); pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY; pos3 = e.clientX; pos4 = e.clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px"; elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            };
+        };
+    }
+    makeDraggable("menu-window", "menu-title"); makeDraggable("calc-window", "calc-title");
+
+    // ==========================================
+    // ВЗАИМОДЕЙСТВИЕ И ЗВУК
+    // ==========================================
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6QVxV0zdsZ5quQ-_ASCYoTWGCGYXOE6zH-LrNkASQ8dktcfVNRkue2JFjnGJUsycT/exec";
+
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active'); btn.classList.add('active');
+        if(tabId === 'tab-records') loadRecords();
+        if(tabId === 'tab-online' && document.getElementById('online-table').rows.length <= 1) fetchOnlineRecords();
+    }
+    function updateSoundUI() {
+        const type = document.getElementById('sound-type').value;
+        document.getElementById('sound-url-box').style.display = type === 'url' ? 'block' : 'none';
+        document.getElementById('sound-file-box').style.display = type === 'local' ? 'block' : 'none';
+        saveSettings();
+    }
+    function loadSettings() {
+        let saved = JSON.parse(localStorage.getItem('win7CalcSettings'));
+        if (saved) {
+            document.getElementById('set-timer').checked = saved.timer !== false;
+            document.getElementById('set-loss').checked = saved.loss !== false;
+            document.getElementById('set-sound').checked = saved.sound !== false;
+            if(saved.sType) document.getElementById('sound-type').value = saved.sType;
+        }
+        updateSoundUI(); updateTimerVisibility();
+    }
+    function saveSettings() {
+        localStorage.setItem('win7CalcSettings', JSON.stringify({ timer: document.getElementById('set-timer').checked, loss: document.getElementById('set-loss').checked, sound: document.getElementById('set-sound').checked, sType: document.getElementById('sound-type').value }));
+        updateTimerVisibility();
+    }
+    function updateTimerVisibility() { document.getElementById('timer-container').style.display = document.getElementById('set-timer').checked ? 'block' : 'none'; }
+    
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null; let customAudioPlayer = new Audio();
+    document.getElementById('sound-file-input').addEventListener('change', e => { if(e.target.files[0]) customAudioPlayer.src = URL.createObjectURL(e.target.files[0]); });
+    document.getElementById('sound-url-input').addEventListener('change', e => customAudioPlayer.src = e.target.value);
+
+    function playSound() {
+        if (!document.getElementById('set-sound').checked) return;
+        const type = document.getElementById('sound-type').value;
+        if (type.startsWith('preset')) {
+            if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination);
+            if (type === 'preset1') { osc.type = 'square'; osc.frequency.setValueAtTime(600, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.02); gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04); osc.start(); osc.stop(audioCtx.currentTime + 0.04); } 
+            else if (type === 'preset2') { osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.setTargetAtTime(0, audioCtx.currentTime + 0.05, 0.015); osc.start(); osc.stop(audioCtx.currentTime + 0.1); }
+            else if (type === 'preset3') { osc.type = 'triangle'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03); osc.start(); osc.stop(audioCtx.currentTime + 0.03); }
+        } else {
+            if(customAudioPlayer.src) { customAudioPlayer.currentTime = 0; customAudioPlayer.play().catch(()=>{}); }
+        }
+    }
+    function testSound() { playSound(); }
+
+    // ==========================================
+    // ЛОГИКА ИГРЫ (СБОР ИНТЕРВАЛОВ ДЛЯ СЕРВЕРА)
+    // ==========================================
+    let isPlaying = false, targetNum = 0, currentSum = 0, lastKey = null, startTime = 0, historyString = "";
+    let timerInterval = null;
+    let clickDeltas = [];
+    let lastClickTime = 0;
+
+    function startCustom() {
+        let val = prompt("Введите цель (число):", "100");
+        if (val && !isNaN(val) && parseInt(val) > 0) startGame(parseInt(val));
+    }
+
+    function startGame(target) {
+        targetNum = parseInt(target); currentSum = 0; lastKey = null; historyString = ""; isPlaying = true;
+        clickDeltas = [];
+        let now = Date.now();
+        startTime = now;
+        lastClickTime = now;
+
+        document.getElementById('calc-blocker').style.display = 'none';
+        document.getElementById('game-status').innerText = 'В процессе...'; document.getElementById('game-status').style.color = 'green';
+        document.getElementById('game-target').innerText = targetNum;
+        clearInterval(timerInterval); document.getElementById('game-time').innerText = '0.0с';
+        if(document.getElementById('set-timer').checked) {
+            timerInterval = setInterval(() => { document.getElementById('game-time').innerText = ((Date.now() - startTime) / 1000).toFixed(1) + 'с'; }, 100);
+        }
+        updateCalcUI("0");
+    }
+
+    function checkHistoryOverflow() {
+        const histDiv = document.getElementById('history-text'); histDiv.scrollLeft = histDiv.scrollWidth;
+        document.getElementById('hist-arrow-left').style.display = (histDiv.scrollWidth > histDiv.clientWidth) ? 'inline' : 'none';
+    }
+    function updateCalcUI(mainText) { document.getElementById('main-num').innerText = mainText; document.getElementById('history-text').innerText = historyString; checkHistoryOverflow(); }
+
+    function playTurn(key) {
+        if (!isPlaying) return;
+        playSound();
+
+        let now = Date.now();
+        clickDeltas.push(now - lastClickTime);
+        lastClickTime = now;
+
+        if (key === '1') {
+            if (lastKey === '1') { loseGame("Двойное нажатие 1"); return; }
+            updateCalcUI("1"); lastKey = '1';
+        } else if (key === '+') {
+            if (lastKey === '+') return; 
+            if (lastKey !== '1') { loseGame("Нажат + без 1"); return; }
+            currentSum++; historyString += "1 + ";
+            updateCalcUI(currentSum.toString()); lastKey = '+';
+            if (currentSum >= targetNum) handleWin();
+        }
+    }
+
+    function wrongBtn() { if (!isPlaying) return; playSound(); loseGame("Неверная кнопка!"); }
+    function safeBtn() { if (!isPlaying) return; playSound(); }
+    function surrender() { if (isPlaying) { playSound(); loseGame("Вы сдались."); } else alert("Игра не запущена!"); }
+
+    // ==========================================
+    // КАСТОМНЫЕ ДИАЛОГОВЫЕ ОКНА WIN7
+    // ==========================================
+    function openModal() { document.getElementById('modal-overlay').style.display = 'flex'; }
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+    function handleWin() {
+        isPlaying = false; clearInterval(timerInterval);
+        document.getElementById('calc-blocker').style.display = 'flex';
+        document.getElementById('game-status').innerText = 'ПОБЕДА!'; document.getElementById('game-status').style.color = 'blue';
+        
+        setTimeout(() => { showAskDialog(); }, 300);
+    }
+
+    // Шаг 1: Вопрос об отправке
+    function showAskDialog() {
+        const area = document.getElementById('modal-content-area');
+        area.innerHTML = `
+            <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
+                <div style="font-size:32px; color:#005599;">ℹ️</div>
+                <div style="font-family:'Segoe UI'; font-size:13px;">
+                    <b>Поздравляем с победой!</b><br><br>
+                    Хотите отправить ваш результат на сервер в глобальную таблицу рекордов?<br>
+                    <i style="color:#666; font-size:11px;">(Сервер проверит вашу игру на автокликеры)</i>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="dialog-btn" onclick="showPromptDialog(true)">Да</button>
+                <button class="dialog-btn" onclick="showPromptDialog(false)">Нет</button>
+            </div>
+        `;
+        openModal();
+    }
+
+    // Шаг 2: Ввод имени
+    function showPromptDialog(sendOnline) {
+        const area = document.getElementById('modal-content-area');
+        area.innerHTML = `
+            <div style="font-family:'Segoe UI'; font-size:13px; margin-bottom:10px;">Введите ваше имя для сохранения результата:</div>
+            <input type="text" id="record-name-input" class="dialog-input" maxlength="20" placeholder="Ваше имя..." autocomplete="off">
+            <div class="dialog-footer">
+                <button class="dialog-btn" onclick="processSave(${sendOnline})">ОК</button>
+            </div>
+        `;
+        document.getElementById('record-name-input').focus();
+    }
+
+    // Шаг 3: Сохранение и Прогресс бар
+    async function processSave(sendOnline) {
+        const name = document.getElementById('record-name-input').value.trim() || "Аноним";
+        
+        // Считаем локальное время из дельт
+        let totalTimeMs = clickDeltas.reduce((a, b) => a + b, 0);
+        let timeSeconds = (totalTimeMs / 1000).toFixed(1);
+
+        // Локальное сохранение
+        let wins = JSON.parse(localStorage.getItem('win7CalcWins')) || [];
+        wins.push({ name: name, target: Number(targetNum), time: Number(timeSeconds) });
+        localStorage.setItem('win7CalcWins', JSON.stringify(wins));
+        loadRecords(); switchTab('tab-records', document.querySelectorAll('.tab-btn')[2]);
+
+        if (!sendOnline) {
+            closeModal(); return;
+        }
+
+        // Анимация отправки
+        const area = document.getElementById('modal-content-area');
+        area.innerHTML = `
+            <div style="font-family:'Segoe UI'; font-size:13px; margin-bottom:10px;">
+                Отправка и проверка данных на сервере...<br>
+                Имя: ${name}<br>Счет: ${targetNum}
+            </div>
+            <div class="win7-progress-container"><div class="win7-progress-bar" id="send-progress"></div></div>
+            <div class="dialog-footer"><button class="dialog-btn disabled">Отмена</button></div>
+        `;
+        
+        const pb = document.getElementById('send-progress');
+        setTimeout(() => pb.style.width = '40%', 100);
+
+        try {
+            const response = await fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                // Отправляем МАССИВ дельт на сервер для проверки
+                body: JSON.stringify({ name: name, target: Number(targetNum), deltas: clickDeltas })
+            });
+
+            const result = await response.json();
+            pb.style.width = '100%';
+
+            setTimeout(() => {
+                if(result.status === "success") {
+                    area.innerHTML = `
+                        <div style="font-family:'Segoe UI'; font-size:13px; color:green; text-align:center; padding: 20px 0;">
+                            ✔️ Рекорд успешно проверен и отправлен!
+                        </div>
+                        <div class="dialog-footer"><button class="dialog-btn" onclick="closeModal()">Закрыть</button></div>
+                    `;
+                    fetchOnlineRecords(); 
+                } else {
+                    area.innerHTML = `
+                        <div style="font-family:'Segoe UI'; font-size:13px; color:red; text-align:center; padding: 20px 0;">
+                            ❌ Отказ сервера:<br>${result.message}
+                        </div>
+                        <div class="dialog-footer"><button class="dialog-btn" onclick="closeModal()">Закрыть</button></div>
+                    `;
+                }
+            }, 500);
+
+        } catch (e) {
+            area.innerHTML = `
+                <div style="font-family:'Segoe UI'; font-size:13px; color:red; text-align:center; padding: 20px 0;">
+                    ❌ Ошибка соединения с сервером.
+                </div>
+                <div class="dialog-footer"><button class="dialog-btn" onclick="closeModal()">Закрыть</button></div>
+            `;
+        }
+    }
+
+    function loseGame(reason) {
+        isPlaying = false; clearInterval(timerInterval);
+        document.getElementById('calc-blocker').style.display = 'flex';
+        document.getElementById('game-status').innerText = 'ПРОИГРЫШ'; document.getElementById('game-status').style.color = 'red';
+        
+        setTimeout(() => {
+            if (document.getElementById('set-loss').checked) {
+                let name = prompt(`ВЫ ПРОИГРАЛИ!\nПричина: ${reason}\nСчёт: ${currentSum} / ${targetNum}\nВведите имя для сохранения локально:`, "Игрок");
+                if (name) {
+                    let losses = JSON.parse(localStorage.getItem('win7CalcLosses')) || [];
+                    losses.push({ name: name, score: currentSum, target: targetNum });
+                    localStorage.setItem('win7CalcLosses', JSON.stringify(losses));
+                }
+            } else { 
+                alert(`ВЫ ПРОИГРАЛИ!\nПричина: ${reason}\nСчёт: ${currentSum} / ${targetNum}`);
+            }
+            loadRecords();
+        }, 50);
+    }
+
+    // ==========================================
+    // ЛОКАЛЬНЫЕ И ОНЛАЙН РЕКОРДЫ
+    // ==========================================
+    function loadRecords() {
+        const wt = document.getElementById('wins-table'); wt.innerHTML = '<tr><th>Имя</th><th>Цель</th><th>Сек.</th></tr>';
+        let wins = JSON.parse(localStorage.getItem('win7CalcWins')) || [];
+        wins.sort((a,b) => b.target !== a.target ? b.target - a.target : a.time - b.time);
+        wins.forEach(w => wt.innerHTML += `<tr><td>${w.name}</td><td>${w.target}</td><td>${w.time.toFixed(1)}</td></tr>`);
+
+        const lt = document.getElementById('loss-table'); lt.innerHTML = '<tr><th>Имя</th><th>Очки</th><th>Цель</th></tr>';
+        let losses = JSON.parse(localStorage.getItem('win7CalcLosses')) || [];
+        losses.sort((a,b) => b.target !== a.target ? b.target - a.target : b.score - a.score);
+        losses.forEach(l => lt.innerHTML += `<tr><td>${l.name}</td><td>${l.score}</td><td>${l.target}</td></tr>`);
+    }
+
+    function clearRecords() {
+        if(confirm("Удалить все локальные рекорды?")) { localStorage.removeItem('win7CalcWins'); localStorage.removeItem('win7CalcLosses'); loadRecords(); }
+    }
+
+    function fetchOnlineRecords() {
+        const btn = document.getElementById('btn-refresh-online');
+        const status = document.getElementById('online-status');
+        const tbl = document.getElementById('online-table');
+        
+        btn.innerText = "Загрузка..."; btn.disabled = true; status.innerText = "Подключение к серверу...";
+
+        fetch(GOOGLE_SCRIPT_URL)
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    tbl.innerHTML = '<tr><th>Место</th><th>Имя</th><th>Цель</th><th>Сек.</th></tr>';
+                    if(data.records.length === 0) {
+                        status.innerText = "Таблица пуста. Станьте первым!";
+                    } else {
+                        data.records.forEach((r, idx) => {
+                            let medal = idx === 0 ? '🥇 ' : (idx === 1 ? '🥈 ' : (idx === 2 ? '🥉 ' : ''));
+                            tbl.innerHTML += `<tr><td>${medal}${idx+1}</td><td>${r.name}</td><td>${r.score}</td><td>${r.timeSeconds.toFixed(1)}</td></tr>`;
+                        });
+                        status.innerText = "Загружено успешно.";
+                    }
+                } else { status.innerText = "Ошибка: " + data.message; }
+            })
+            .catch(err => { status.innerText = "Ошибка сети."; console.error(err); })
+            .finally(() => { btn.innerText = "Обновить таблицу"; btn.disabled = false; });
+    }
+
+    window.onload = () => { loadSettings(); loadRecords(); };
+</script>
+</body>
+</html>
